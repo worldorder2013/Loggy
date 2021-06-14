@@ -1,0 +1,33 @@
+
+~~~~Linux Systems~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1. Run 'aurora_log_file_browser.pl' in your terminal.
+	i.e. 
+		cmd> ./aurora_log_file_brower.pl
+
+Proceed to step 2 if an error occurs.
+
+2. a.) You might want to change the She-bang (#!) line to
+       point to your local perl environment.
+	i.e.
+		cmd> which perl
+	        /usr/bin/perl (result)
+   b.) change the first line of the code to:
+		#!/usr/bin/perl
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~Windows~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Note: No test has been done yet for Windows PC
+
+1. Make sure perl and Tk is installed in your PC.
+2. Double click aurora_log_file_browser.pl
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+~~~Software usage to follow~~~~~~~~~~~~~~~~~~~~~~~~
+
+TODO
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
