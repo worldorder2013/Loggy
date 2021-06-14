@@ -1,12 +1,23 @@
 #!/usr/bin/env perl
 
 
+#############################################################################################
+## This software can be used for personal and commercial use.                              ##
+## Please do not remove this message when modifying and/or distributing this software.     ##
+## I am not liable for any damage which occurs with the use of this software.              ##
+## The main copy of this software is located at:                                           ##
+##   https://github.com/worldorder2013/Aurora/blob/main/aurora_log_file_browser.pl         ##
+## Any alterations from the main copy is solely at the other user's liabilities            ## 
+## Author: Richmond Kerville Magallon                                                      ##
+## Email me for questions, suggestions, and bugs at: hastyt627@gmail.com                   ##
+#############################################################################################
+
 use Tk 800.000;
 use Tk::HList;
-use Tk::InputO;
 use Tk::LabEntry;
 require Tk::DialogBox;
 use strict;
+
 ## global variables
 my %ERRORS;
 my %WARNINGS;
