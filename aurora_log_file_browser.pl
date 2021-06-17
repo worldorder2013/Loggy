@@ -16,6 +16,7 @@ use Tk 800.000;
 use Tk::HList;
 use Tk::LabEntry;
 require Tk::DialogBox;
+require Tk::Tree;
 use strict;
 
 ## global variables
@@ -50,14 +51,20 @@ $file->command(
 	-command => \&open_file
 );
 $file->command(
-	-label => 'Open (Latest)',
+	-label => 'Open Latest',
 	-underline => 0,
 	-command => \&open_auto_log_file
 );
+$file->separator;
 $file->command(
-	-label => 'Save errors/warnings',
+	-label => 'Save Messages (All)',
 	-underline => 0,
-	-command => \&save_messages
+	-command => [\&save_messages, "all"]
+);
+$file->command(
+	-label => 'Save Messages (Summarized)',
+	-underline => 0,
+	-command => [\&save_messages, "summarized"]
 );
 
 my $tool = "innovus";
@@ -96,16 +103,17 @@ my $l_bottom = $top->Label(-text => "No log file selected",
 	-anchor => 'n', -relief => 'groove', -height => '3');
 
 
-my $hlist = $top->Scrolled('HList', -selectmode => 'extended', -indent => 10, -drawbranch => 1); 
+my $hlist = $top->Scrolled('Tree', -selectmode => 'extended', -indent => 10, -drawbranch => 1); 
 ## main Error header
 $hlist->add("Errors", -text => "Errors"); 
 ## main Warning header
 $hlist->add("Warnings", -text => "Warnings"); 
+$hlist->add("Information", -text => "Info"); 
 $hlist->configure(-width=>18);
 $hlist->configure(-height=>30);
 $hlist->configure(-command=>\&cb_populate_warning_error_textfield);
 $hlist->configure(-browsecmd=>\&cb_multi_populate_warning_error_textfield);
-
+$hlist->autosetmode();
 ## text Gui
 my $text = $fr->Text(-background => 'white');
 $text->configure(-height => 40);
@@ -177,32 +185,11 @@ sub process_log_file {
 
 	my $file_mod_time = localtime((stat($h))[9]);
 	$l_bottom->configure(-text=>"$h $file_mod_time" );
-
-
 }
 
-sub save_messages {
-	our $h=$top->getSaveFile();
-	open FH, ">$h";
-	our $num_msg;
-	print FH "Errors:\n";
-	foreach (sort keys %{$MSG{Errors}}) {
-		$num_msg = scalar( @{$MSG{Errors}{$_}});
-		print FH "$_:\n";
-		print FH "$MSG{Errors}{$_}->[0]\n"; 
-	} 
-	print FH "Warnings:\n";
-	foreach (sort keys %{$MSG{Warnings}}) {
-		$num_msg = scalar( @{$MSG{Warnings}{$_}});
-		print FH "$_:\n";
-		print FH "$MSG{Warnings}{$_}->[0]\n"; 
-	}
-	close FH;
-}
 
 sub parse_error_warn_innovus {
 	$filename = shift @_;
-	#$filename = '/lsc/scratch/logic_ip/apollo/rmagallo/earth/logs.log29';
 	open(FH, "<$filename");
 	# or die "Couldn't open file $filename: $!";
 	while (<FH>) {
@@ -213,19 +200,21 @@ sub parse_error_warn_innovus {
 		if (/\*\*WARN: \((\S+)\)/){
 			push (@{$MSG{Warnings}{$1}}, $_);
 		}
+		if (/\*\* INFO: (.*)/){
+			push (@{$MSG{Information}{"Info"}}, $_);
+		}
 	}
 	close FH;
 }
 
 sub populate_hlist_entries {
 	my $num_msg;
-	foreach (sort keys %{$MSG{Errors}}) {
-		$num_msg = scalar( @{$MSG{Errors}{$_}});
-		$hlist->add("Errors.$_", -text => "$_ ($num_msg)"); 
-	} 
-	foreach (sort keys %{$MSG{Warnings}}) {
-		$num_msg = scalar( @{$MSG{Warnings}{$_}});
-		$hlist->add("Warnings.$_", -text => "$_ ($num_msg)"); 
+	foreach my $msgtype (keys %MSG) {
+		foreach (sort keys %{$MSG{$msgtype}}){
+			$num_msg = scalar( @{$MSG{$msgtype}{$_}});
+			$hlist->add("${msgtype}.$_", -text => "$_ ($num_msg)"); 
+		
+		}
 	} 
 }
 
@@ -238,18 +227,47 @@ sub clear_messages_variable {
 	%MSG=undef;
 }
 
+sub save_messages {
+	my $mode = shift @_;
+	our $h=$top->getSaveFile();
+	open FH, ">$h";
+	our $num_msg;
+	foreach my $msgtype (keys %MSG) {
+		next if $msgtype=~/^$/;
+		print FH "------$msgtype------\n";
+		foreach my $msgs ( keys %{$MSG{$msgtype}}){
+			$num_msg = scalar( @{$MSG{$msgtype}{$msgs}});
+			print FH "$msgs (Total of $num_msg):\n";
+			
+			if ($mode eq "all"){
+				foreach my $lines (@{$MSG{$msgtype}{$msgs}}){
+					print FH "$lines\n";
+				}
+			}elsif ($mode eq "summarized"){
+				if ($msgs eq "Info"){
+					my $sticky;
+					foreach my $inf (sort {$a<=>$b} @{$MSG{$msgtype}{$msgs}}){
+						if ($inf eq $sticky){
+							next;
+						}else{
+							print FH "$inf\n";
+							$sticky = $inf;
+						}
+					} 
+				}else{
+					print FH "$MSG{$msgtype}{$msgs}->[0]\n"; 
+				}
+			}
+		
+		}
+		print FH "\n"; 
+	}
+	close FH;
+}
 
 
 sub waiver_filter {
 return 0
-}
-
-sub print_warnings {
-foreach (keys %WARNINGS) {
-	print "@{$WARNINGS{$_}}\n";
-
-}
-
 }
 
 
@@ -275,15 +293,15 @@ sub cb_multi_populate_warning_error_textfield {
 	$text->selectAll;
 	$text->deleteSelected;
 	foreach $widget ($hlist->info('selection')){
-	my ($msg_type, $msg_code) = split(/\./,$widget);
+		my ($msg_type, $msg_code) = split(/\./,$widget);
 		if ( $msg_code eq ""){
-		foreach (sort keys %{$MSG{$msg_type}}){
+			foreach (sort keys %{$MSG{$msg_type}}){
+				$text->insert('end', "$_\n");
+			}
+			next;
+		}
+		foreach ( @{$MSG{$msg_type}{$msg_code}}){
 			$text->insert('end', "$_\n");
 		}
-		next;
-	}
-	foreach ( @{$MSG{$msg_type}{$msg_code}}){
-		$text->insert('end', "$_\n");
-	}
 	}
 }
