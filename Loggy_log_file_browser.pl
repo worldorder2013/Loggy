@@ -3,11 +3,11 @@
 
 #############################################################################################
 ## This software can be used for personal and commercial use.                              ##
-## Please do not remove this message when modifying and/or distributing this software.     ##
-## I am not liable for any damage which occurs with the use of this software.              ##
+## Please do not remove this message when modifying and/or distributing.                   ##
 ## The main copy of this software is located at:                                           ##
-##   https://github.com/worldorder2013/Aurora/blob/main/aurora_log_file_browser.pl         ##
-## Any alterations from the main copy is solely at the other user's liabilities            ## 
+##   https://github.com/worldorder2013/Loggy/blob/main/Loggy_log_file_browser.pl           ##
+## Any alterations from the main code is solely at the user's liabilities                  ## 
+## I am not liable for any damage which occurs with the use of this software.              ##
 ## Author: Richmond Kerville Magallon                                                      ##
 ## Email me for questions, suggestions, and bugs at: hastyt627@gmail.com                   ##
 #############################################################################################
@@ -405,13 +405,10 @@ sub create_init_preferences_file {
 }
 
 sub wrap_text {
-my $mode = shift @_;
-if ($mode eq "wrap") {
-
-$text->configure(-wrap=>'word');
-my @f = keys %MSG;
-}else { 
-$text->configure(-wrap=>'none');
-my @f = keys %MSG;
-}
+	my $mode = shift @_;
+	if ($mode eq "wrap") {
+		$text->configure(-wrap=>'word');
+	}else { 
+		$text->configure(-wrap=>'none');
+	}
 }
