@@ -1,8 +1,8 @@
 
 ~~~~Linux Systems~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1. Run 'aurora_log_file_browser.pl' in your terminal.
+1. Run 'Loggy_log_file_browser.pl' in your terminal.
 	i.e. 
-		cmd> ./aurora_log_file_brower.pl
+		cmd> ./Loggy_log_file_brower.pl
 
 Proceed to step 2 if an error occurs.
 
@@ -19,7 +19,7 @@ Proceed to step 2 if an error occurs.
 Note: No test has been done yet for Windows PC
 
 1. Make sure perl and Tk is installed in your PC.
-2. Double click aurora_log_file_browser.pl
+2. Double click Loggy_log_file_browser.pl
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
