@@ -176,6 +176,9 @@ $hlist->configure(-highlightcolor=>"MistyRose1");
 $hlist->configure(-background=>'White');
 $hlist->configure(-command=>\&cb_populate_warning_error_textfield);
 $hlist->configure(-browsecmd=>\&cb_multi_populate_warning_error_textfield);
+$hlist->Subwidget("yscrollbar")->configure(-width=> 10);
+$hlist->Subwidget("yscrollbar")->configure(-borderwidth=> 2);
+$hlist->Subwidget("xscrollbar")->configure(-width=> 10);
 $hlist->autosetmode();
 
 ## text Gui
@@ -183,6 +186,9 @@ my $text = $fr->Scrolled("Text", -background => 'white', -scrollbars => 'osoe');
 #my $text = $fr->Text( -background => 'white');
 $text->configure(-height => 30);
 $text->configure(-width => 150);
+$text->Subwidget("yscrollbar")->configure(-relief=> 'flat');
+$text->Subwidget("yscrollbar")->configure(-borderwidth=> 2);
+$text->Subwidget("xscrollbar")->configure(-relief=> 'flat');
 #my $btn1 = $fr->Button(-text => 'Exit', -anchor=>'n', -command => sub {exit});
 
 ## Geometry management
