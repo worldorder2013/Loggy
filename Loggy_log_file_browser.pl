@@ -121,6 +121,27 @@ $edit->command(-label => "'Latest File' Pattern",
 	-activebackground=>"white",
 	-font=>"$mfont"
 );
+my $wrap_opt = $edit->cascade(-label => "Wrap Text", 
+-tearoff=>0,
+-command => \&wrap_text,
+	-background=>"white",
+	-activebackground=>"white",
+	-font=>"$mfont"
+);
+my $wrap_option = [["Enable", "wrap"], ["None", "none"]];
+my $wrap_text_mode = "wrap";
+foreach (@$wrap_option){
+	$wrap_opt->radiobutton(
+        	-label => $_->[0],
+        	-variable => \$wrap_text_mode,
+        	-value =>  $_->[1],
+		-command => [\&wrap_text, $_->[1]],
+	-background=>"white",
+	-activebackground=>"white",
+	-font=>"$mfont"
+	
+	);
+}
 
 
 $help->command(-label => 'Loggy Log File Browser v1.0',
@@ -158,7 +179,7 @@ $hlist->configure(-browsecmd=>\&cb_multi_populate_warning_error_textfield);
 $hlist->autosetmode();
 
 ## text Gui
-my $text = $fr->Scrolled("Text", -background => 'white', -scrollbars => 'oe');
+my $text = $fr->Scrolled("Text", -background => 'white', -scrollbars => 'osoe');
 #my $text = $fr->Text( -background => 'white');
 $text->configure(-height => 30);
 $text->configure(-width => 150);
@@ -375,4 +396,16 @@ sub create_init_preferences_file {
 	print FH "tool : Innovus\n";
 	print FH "latest_file_pattern : .log[0-9]*\n";
 	close FH;
+}
+
+sub wrap_text {
+my $mode = shift @_;
+if ($mode eq "wrap") {
+
+$text->configure(-wrap=>'word');
+my @f = keys %MSG;
+}else { 
+$text->configure(-wrap=>'none');
+my @f = keys %MSG;
+}
 }
