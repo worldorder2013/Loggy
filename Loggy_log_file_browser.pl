@@ -16,6 +16,7 @@ use Tk 800.000;
 use Tk::HList;
 use Tk::LabEntry;
 use Tk::DialogBox;
+use Tk::Dialog;
 use Tk::Tree;
 use strict;
 
@@ -23,18 +24,31 @@ use strict;
 my %ERRORS;
 my %WARNINGS;
 my %MSG;
-my %PREFS;
 my $filename;
 my $latest_file_pattern="*.log[0-9]*";
 my $tool = "Innovus";
 my $tools_ = [['Innovus', "Innovus"], ['ICC2', "ICC2"], ['Tempus', "Tempus"]];
 my $preferences_file = "$ENV{HOME}/log_browser_preferences.txt";
+my $wrap_text_mode = "word";
+my %PREFS = (
+	tool => $tool,
+	latest_file_pattern => $latest_file_pattern,
+	wrap_text_mode => $wrap_text_mode,
+	
+);
 
-&check_init_preferences_file();
+
+if (&check_preferences_file_status()>0){
+	&process_preferences_file();
+}elsif (&check_preferences_file_status()<0){
+	&create_init_preferences_file();
+}else{
+	##Do nothing. Use default hard coded value.
+}
 
 # GUI Tk starts here
 my $top = MainWindow->new();
-$top->title("Loggy - $tool");
+$top->title("Loggy - $PREFS{tool}");
 $top->configure(-width => 300); 
 $top->configure(-background => 'Snow1'); 
 
@@ -104,16 +118,15 @@ $file->command(
 foreach (@$tools_){
 	$newfile->radiobutton(
         	-label => $_->[0],
-        	-variable => \$tool,
+        	-variable => \$PREFS{tool},
         	-value =>  $_->[1],
-		-command => sub {$top->configure(-title => "Loggy - $tool")},
+		-command => \&update_tool,
 	-background=>"white",
 	-activebackground=>"white",
 	-font=>"$mfont"
 	
 	);
 }
-
 
 $edit->command(-label => "'Latest File' Pattern", 
 -command => \&open_dialog,
@@ -128,14 +141,13 @@ my $wrap_opt = $edit->cascade(-label => "Wrap Text",
 	-activebackground=>"white",
 	-font=>"$mfont"
 );
-my $wrap_option = [["Enable", "wrap"], ["None", "none"]];
-my $wrap_text_mode = "wrap";
+my $wrap_option = [["Enable", "word"], ["None", "none"]];
 foreach (@$wrap_option){
 	$wrap_opt->radiobutton(
         	-label => $_->[0],
-        	-variable => \$wrap_text_mode,
+        	-variable => \$PREFS{wrap_text_mode},
         	-value =>  $_->[1],
-		-command => [\&wrap_text, $_->[1]],
+		-command => \&wrap_text,
 	-background=>"white",
 	-activebackground=>"white",
 	-font=>"$mfont"
@@ -184,6 +196,7 @@ $hlist->autosetmode();
 ## text Gui
 my $text = $fr->Scrolled("Text", -background => 'white', -scrollbars => 'osoe');
 #my $text = $fr->Text( -background => 'white');
+$text->configure(-wrap=>$PREFS{wrap_text_mode});
 $text->configure(-height => 30);
 $text->configure(-width => 150);
 $text->Subwidget("yscrollbar")->configure(-relief=> 'flat');
@@ -216,23 +229,14 @@ sub open_file {
 	if ($h eq ""){
 		return;	
 	}else{
+		&clear_message_textfield();
 		&process_log_file($h);
 	}
 	
 }
-sub open_dialog{
-	my $temp = $latest_file_pattern;
-	my $dd=$top->DialogBox(-title=>"Enter Pattern", -buttons=>["OK", "Cancel"]);
-	$dd->add('LabEntry', -textvariable => \$latest_file_pattern, -width=>20, -label=>"Pattern:",
-	-labelPack => [-side => 'left'])->pack;
-	my $mm = $dd->Show();
-	if ($mm ne "OK"){
-		$latest_file_pattern = $temp;
-	}
-}
 
 sub open_auto_log_file {
-	my @log_files=glob($latest_file_pattern);
+	my @log_files=glob($PREFS{latest_file_pattern});
 	my $file_epoch;
 	my $final_file = $log_files[0];
 	my $file_epoch_max = (stat($log_files[0]))[9];
@@ -243,8 +247,23 @@ sub open_auto_log_file {
 			$final_file = $_; 
 		}
 	}
+	&clear_message_textfield();
 	&process_log_file($final_file);
 
+}
+
+sub open_dialog{
+	my $temp = $PREFS{latest_file_pattern};
+	my $dd=$top->DialogBox(-title=>"Enter Pattern", -buttons=>["OK", "Cancel"]);
+	$dd->add('LabEntry', -textvariable => \$PREFS{latest_file_pattern}, -width=>20, -label=>"Pattern:",
+	-labelPack => [-side => 'left'])->pack;
+	my $mm = $dd->Show();
+	if  ($mm eq "OK") {
+		&update_preferences_file();
+
+	}else{
+		$PREFS{latest_file_pattern} = $temp;
+	}
 }
 
 sub process_log_file {
@@ -252,7 +271,15 @@ sub process_log_file {
 	our $mode = shift @_;
 	&clear_hlist_entries;
 	&clear_messages_variable;
-	if ($tool eq "Innovus"){
+	if (! (-f  $h && -T _)){
+		my $DialogRef = $top->Dialog(
+    		-title => "Error",
+    		-text => "File '$h' is not readable.",
+		)->Show();
+		$l_bottom->configure(-text=>"Invalid file opened!" );
+		return 0;
+	}
+	if ($PREFS{tool} eq "Innovus"){
 		&parse_error_warn_innovus($h);
 	}
 	&populate_hlist_entries;
@@ -301,6 +328,12 @@ sub clear_hlist_entries {
 sub clear_messages_variable {
 	%MSG=undef;
 }
+
+sub clear_message_textfield{
+        $text->selectAll;
+        $text->deleteSelected;
+}
+
 
 sub save_messages {
 	my $mode = shift @_;
@@ -381,34 +414,58 @@ sub cb_multi_populate_warning_error_textfield {
 	}
 }
 
-sub check_init_preferences_file {
+sub check_preferences_file_status {
 	if ( -e $preferences_file ) {
+		return 1;
 	} elsif (-w $ENV{HOME}) {
-		&create_init_preferences_file();	
+		return -1;	
+	} else {
+		return 0
 	}
 }
 
-sub update_preferences_file {
+sub process_preferences_file {
 	open(FH, "< $preferences_file");
+	foreach (<FH>){
+		my ($variable, $value) = split(/:/);
+		$variable =~ s/^\s+//g;
+		$variable =~ s/\s+$//g;
+		$value =~ s/^\s+//g;
+		$value =~ s/\s+$//g;
+		$PREFS{$variable}=$value;
+	}
+	close FH;
+
+
+}
+
+sub update_preferences_file {
+	return 0 if (&check_preferences_file_status == 0);
+	open(FH, "> $preferences_file");
 	foreach (keys %PREFS){
 		print FH "$_ : $PREFS{$_}\n";
 	}
 	close FH;
 }
 
+sub update_tool {
+	$top->configure(-title => "Loggy - $PREFS{tool}"),
+	&update_preferences_file();
+}
 
 sub create_init_preferences_file {
 	open FH, "> $preferences_file";
-	print FH "tool : Innovus\n";
-	print FH "latest_file_pattern : .log[0-9]*\n";
+	foreach (keys %PREFS){
+		print FH "$_ : $PREFS{$_}\n";
+	}
 	close FH;
 }
 
 sub wrap_text {
-	my $mode = shift @_;
-	if ($mode eq "wrap") {
+	if ($PREFS{wrap_text_mode} eq "word") {
 		$text->configure(-wrap=>'word');
 	}else { 
 		$text->configure(-wrap=>'none');
 	}
+	&update_preferences_file();
 }
