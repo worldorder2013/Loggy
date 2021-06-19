@@ -175,6 +175,7 @@ my $l_bottom = $top->Label(-text => "No log file selected",
 
 $l_bottom->configure(-background=>'White');
 $l_bottom->configure(-border=>0);
+$l_bottom->configure(-font=>"Arial 9");
 
 my $hlist = $top->Scrolled('Tree', -selectmode => 'extended', -indent => 10, -drawbranch => 1, -scrollbars => "osw"); 
 $hlist->add("Errors", -text => "Errors"); 
@@ -195,21 +196,14 @@ $hlist->autosetmode();
 
 ## text Gui
 my $text = $fr->Scrolled("Text", -background => 'white', -scrollbars => 'osoe');
-#my $text = $fr->Text( -background => 'white');
 $text->configure(-wrap=>$PREFS{wrap_text_mode});
 $text->configure(-height => 30);
 $text->configure(-width => 150);
 $text->Subwidget("yscrollbar")->configure(-relief=> 'flat');
 $text->Subwidget("yscrollbar")->configure(-borderwidth=> 2);
 $text->Subwidget("xscrollbar")->configure(-relief=> 'flat');
-#my $btn1 = $fr->Button(-text => 'Exit', -anchor=>'n', -command => sub {exit});
 
 ## Geometry management
-#$text->pack(-side=>'left', -anchor=>'n');
-#$hlist->pack(-side=>'left', -anchor=>'nw', -expand=>1, -fill=>'y');
-#$fr->pack(-side=>'top', -anchor=>'nw', -expand => 1, -fill=>'both');
-#$l_bottom->pack(-side => "bottom", -fill=>'x');
-
 $hlist->pack(-side=>'left', -anchor=>'n', -fill=>'y');
 $text->pack(-side=>'right', -anchor=>'e', -fill=> 'both', -expand => 1);
 $fr->pack(-expand => 1, -side=>'top', -anchor=>'w', -fill=>'both');
