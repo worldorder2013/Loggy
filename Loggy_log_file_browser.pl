@@ -41,9 +41,7 @@ my %PREFS = (
 
 &process_args();
 $preferences_file = $OPTIONS{preferences_file} if ($OPTIONS{preferences_file} ne '');
-foreach (keys %OPTIONS){
-	print "$_ $OPTIONS{$_}\n";
-}
+
 if (&check_preferences_file_status()>0){
 	&process_preferences_file();
 }elsif (&check_preferences_file_status()<0){
