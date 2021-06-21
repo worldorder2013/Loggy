@@ -18,12 +18,14 @@ use Tk::LabEntry;
 use Tk::DialogBox;
 use Tk::Dialog;
 use Tk::Tree;
+use Tk::Adjuster;
 use strict;
 
 ## global variables
 my %ERRORS;
 my %WARNINGS;
 my %MSG;
+my %OPTIONS;
 my $filename;
 my $latest_file_pattern="*.log[0-9]*";
 my $tool = "Innovus";
@@ -37,7 +39,11 @@ my %PREFS = (
 	
 );
 
-
+&process_args();
+$preferences_file = $OPTIONS{preferences_file} if ($OPTIONS{preferences_file} ne '');
+foreach (keys %OPTIONS){
+	print "$_ $OPTIONS{$_}\n";
+}
 if (&check_preferences_file_status()>0){
 	&process_preferences_file();
 }elsif (&check_preferences_file_status()<0){
@@ -184,6 +190,7 @@ $hlist->add("Information", -text => "Info");
 $hlist->configure(-width=>22);
 $hlist->configure(-height=>30);
 $hlist->configure(-font=>'Arial 8');
+$hlist->configure(-border=>0);
 $hlist->configure(-selectbackground=>'MistyRose1');
 $hlist->configure(-highlightcolor=>"MistyRose1"); 
 $hlist->configure(-background=>'White');
@@ -205,6 +212,7 @@ $text->Subwidget("xscrollbar")->configure(-relief=> 'flat');
 
 ## Geometry management
 $hlist->pack(-side=>'left', -anchor=>'n', -fill=>'y');
+$top->Adjuster()->packAfter($hlist, -side => 'left');
 $text->pack(-side=>'right', -anchor=>'e', -fill=> 'both', -expand => 1);
 $fr->pack(-expand => 1, -side=>'top', -anchor=>'w', -fill=>'both');
 $l_bottom->pack(-side => "bottom", -fill=>'x');
@@ -462,4 +470,14 @@ sub wrap_text {
 		$text->configure(-wrap=>'none');
 	}
 	&update_preferences_file();
+}
+
+
+sub process_args {
+	foreach (@ARGV){
+		if (/-(\S+=\S+)/){
+			my ($option, $pvalue) = split(/=/,$1);
+			$OPTIONS{$option} = $pvalue;
+		}
+	}
 }
