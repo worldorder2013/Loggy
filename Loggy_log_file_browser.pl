@@ -19,6 +19,8 @@ use Tk::DialogBox;
 use Tk::Dialog;
 use Tk::Tree;
 use Tk::Adjuster;
+use Tk::ItemStyle;
+use File::Spec;
 use strict;
 
 ## global variables
@@ -26,6 +28,7 @@ my %ERRORS;
 my %WARNINGS;
 my %MSG;
 my %OPTIONS;
+my %WAIVED;
 my $filename;
 my $latest_file_pattern="*.log[0-9]*";
 my $tool = "Innovus";
@@ -63,14 +66,16 @@ $menubar->configure(-background=>"PaleGoldenRod");
 $menubar->configure(-fg=>"Red3"); 
 $menubar->configure(-activeforeground=>"Red3"); 
 $menubar->configure(-activebackground=>"White"); 
+$menubar->configure(-activeborderwidth=>0); 
 my $file = $menubar->cascade(-label => '~File', -tearoff=>0); 
 my $edit = $menubar->cascade(-label => '~Edit', -tearoff=>0); 
+my $waive = $menubar->cascade(-label => '~Waive', -tearoff=>0); 
 my $help = $menubar->cascade(-label => '~Help', -tearoff=>0); 
 
-$file->configure(-background=>"Snow1"); 
-$edit->configure(-background=>"Snow1"); 
-$help->configure(-background=>"Snow1"); 
-$menubar->configure(-activeborderwidth=>0); 
+#$file->configure(-background=>"Snow1"); 
+#$edit->configure(-background=>"Snow1"); 
+#$help->configure(-background=>"Snow1"); 
+
 
 my $mfont = "Arial 9";
 my $newfile = $file->cascade(
@@ -159,7 +164,45 @@ foreach (@$wrap_option){
 	);
 }
 
+## Waive Sub-Menu Section
+$waive->command(
+	-label => 'Load',
+	-underline => 0,
+	-command => [\&open_waive_file, "new"],
+	-background=>"white",
+	-activebackground=>"white",
+	-font=>"$mfont"
 
+);
+$waive->command(
+	-label => 'Load last file',
+	-underline => 0,
+	-command => [\&open_waive_file, "previous"],
+	-background=>"white",
+	-activebackground=>"white",
+	-font=>"$mfont"
+
+);
+$waive->command(
+	-label => 'Save New',
+	-underline => 0,
+	-command => [\&save_waiver, "new"],
+	-background=>"white",
+	-activebackground=>"white",
+	-font=>"$mfont"
+
+);
+$waive->command(
+	-label => 'Save Update',
+	-underline => 0,
+	-command => [\&save_waiver, "update"],
+	-background=>"white",
+	-activebackground=>"white",
+	-font=>"$mfont"
+
+);
+
+## Help Sub-Menu Section
 $help->command(-label => 'Loggy Log File Browser v1.0',
 	-background=>"white",
 	-activebackground=>"white",
@@ -187,7 +230,7 @@ $hlist->add("Warnings", -text => "Warnings");
 $hlist->add("Information", -text => "Info"); 
 $hlist->configure(-width=>22);
 $hlist->configure(-height=>30);
-$hlist->configure(-font=>'Arial 8');
+$hlist->configure(-font=>'Arial 8 bold');
 $hlist->configure(-border=>0);
 $hlist->configure(-selectbackground=>'MistyRose1');
 $hlist->configure(-highlightcolor=>"MistyRose1"); 
@@ -198,6 +241,29 @@ $hlist->Subwidget("yscrollbar")->configure(-width=> 10);
 $hlist->Subwidget("yscrollbar")->configure(-borderwidth=> 2);
 $hlist->Subwidget("xscrollbar")->configure(-width=> 10);
 $hlist->autosetmode();
+
+
+
+
+## Item Styles ##
+my $waived_text = $top->ItemStyle('text', -bg=>'white', -foreground => 'gray', -selectforeground => 'gray', -font => 'Arial 8 bold'); 
+
+##Context Menu
+
+my $m = $hlist->Menu(-tearoff => 0,-title=>'None',
+  -menuitems =>
+    [
+     [Button => "Waive",  -command => \&cm_process_waived],
+     [Button => "Un-waive",  -command => \&cm_process_dewaive],
+    ]
+   );
+
+$hlist->bind("<Button-3>" => [ sub {
+                              $hlist->focus; # focus on listbox widget 
+                              my($w, $x, $y) = @_;
+                              $m->post($x, $y);
+                                 }, Ev('X'), Ev('Y') ] );
+$m->bind("<Leave>"=>sub{$m->unpost});
 
 ## text Gui
 my $text = $fr->Scrolled("Text", -background => 'white', -scrollbars => 'osoe');
@@ -225,7 +291,7 @@ sub open_file {
     	['log Files',       ['*.log*']],
     	['All Files',        '*',             ],
 	];
-	our $h=$top->getOpenFile(-filetypes=>$types);
+	my $h=$top->getOpenFile(-filetypes=>$types);
 	if ($h eq ""){
 		return;	
 	}else{
@@ -247,6 +313,7 @@ sub open_auto_log_file {
 			$final_file = $_; 
 		}
 	}
+	$final_file = File::Spec->rel2abs($final_file);
 	&clear_message_textfield();
 	&process_log_file($final_file);
 
@@ -314,7 +381,11 @@ sub populate_hlist_entries {
 	foreach my $msgtype (keys %MSG) {
 		foreach (sort keys %{$MSG{$msgtype}}){
 			$num_msg = scalar( @{$MSG{$msgtype}{$_}});
+			if ($WAIVED{quotemeta($_)}){
+			$hlist->add("${msgtype}.$_", -text => "$_ ($num_msg)", -style=>$waived_text, -itemtype=>'text'); 
+			} else {
 			$hlist->add("${msgtype}.$_", -text => "$_ ($num_msg)"); 
+			}
 		
 		}
 	} 
@@ -478,4 +549,93 @@ sub process_args {
 			$OPTIONS{$option} = $pvalue;
 		}
 	}
+}
+
+
+sub open_waive_file {
+	my $mode = shift @_;
+	my $h;
+	if ($mode eq 'previous'){
+		$h = $PREFS{last_waiver_file};
+	} elsif ($mode eq 'new'){
+		my $types = [
+    		['Waive Files',       ['*.waive*']],
+    		['All Files',        '*',             ],
+		];
+		$h=$top->getOpenFile(-filetypes=>$types);
+		if ($h eq ""){
+			return;	
+		} elsif  (! (-f  $h && -T _)){
+			my $DialogRef = $top->Dialog(
+    			-title => "Error",
+    			-text => "File '$h' is not readable.",
+			)->Show();
+			$l_bottom->configure(-text=>"Invalid waiver file opened!" );
+		return 0;
+	}	
+		$PREFS{last_waiver_file} = File::Spec->rel2abs($h);
+		&update_preferences_file();
+	}
+	&process_waive_file($h);
+	&clear_hlist_entries();
+	&populate_hlist_entries();
+	
+}
+
+sub process_waive_file {
+	my $h = shift @_;
+	open FH, "< $h";
+	foreach (<FH>){
+		chomp;
+		$WAIVED{$_} = 1;
+	}
+}
+
+sub cm_process_waived {
+foreach  ($hlist->info('selection')) {
+	/^[^.]+?\.([^.]+?)$/;
+	my $selection_head = $1;
+	&store_waived($selection_head);
+	&clear_hlist_entries();
+	&populate_hlist_entries();
+}
+
+}
+sub cm_process_dewaive {
+foreach  ($hlist->info('selection')) {
+	/^[^.]+?\.([^.]+?)$/;
+	my $selection_head = $1;
+	delete $WAIVED{quotemeta($selection_head)};
+	&clear_hlist_entries();
+	&populate_hlist_entries();
+}
+
+}
+
+sub store_waived {
+	my $waived_head = shift @_;
+	my $waived_content = shift @_;
+	my $waived_head_q = quotemeta $waived_head;
+	my $waived_content_q;
+	$waived_content_q = quotemeta $waived_content if $waived_content ne "";
+		#push (@{$WAIVED{$waived_head_q}}, $waived_content_q);
+		$WAIVED{$waived_head_q}=1;
+}
+
+sub save_waiver {
+	my $mode = shift @_;
+	my $h;
+	if ($mode eq "update"){
+		$h = $PREFS{last_waiver_file};
+	 }elsif($mode eq "new"){
+	$h=$top->getSaveFile();
+	return 0 if $h eq '';
+	$PREFS{last_waiver_file} = $h;
+	}
+	open FH, ">$h";
+	my $num_msg;
+	foreach (keys %WAIVED){
+		print FH "$_\n";
+	}
+	close FH;
 }
