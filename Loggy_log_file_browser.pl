@@ -369,6 +369,9 @@ sub parse_error_warn_innovus {
 		if (/\*\*WARN: \((\S+)\)/){
 			push (@{$MSG{Warnings}{$1}}, $_);
 		}
+		if (/#WARNING \((\S+)\)/){
+                        push (@{$MSG{Warnings}{$1}}, $_);
+                }
 		if (/\*\* INFO: (.*)/){
 			push (@{$MSG{Information}{"INFO"}}, $_);
 		}
