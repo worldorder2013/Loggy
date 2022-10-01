@@ -379,6 +379,28 @@ sub parse_error_warn_innovus {
 	close FH;
 }
 
+sub parse_error_warn_icc2 {
+	$filename = shift @_;
+	open(FH, "<$filename");
+	# or die "Couldn't open file $filename: $!";
+	while (<FH>) {
+		chomp $_;
+		if (/^Error:.*\((\S+)\)$/){
+			push (@{$MSG{Errors}{$1}}, $_);
+		}
+		if (/^Warning:.*\((\S+)\)$/){
+			push (@{$MSG{Warnings}{$1}}, $_);
+		}
+		if (/#WARNING \((\S+)\)/){
+                        push (@{$MSG{Warnings}{$1}}, $_);
+                }
+		if (/^Information:.*\((\S+)\)$/){
+			push (@{$MSG{Information}{"INFO"}}, $_);
+		}
+	}
+	close FH;
+}
+
 sub populate_hlist_entries {
 	my $num_msg;
 	foreach my $msgtype (keys %MSG) {
